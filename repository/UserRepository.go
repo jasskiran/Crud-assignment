@@ -52,12 +52,7 @@ func (u userRepository) Add(uow *UnitOfWork, out *models.User) error {
 
 func (u userRepository) Update(uow *UnitOfWork, user *models.User, Id int) error {
 
-	query := fmt.Sprintf(`
-		UPDATE user
-		SET 
-			name = ?
-		WHERE 
-			id = ?`,
+	query := fmt.Sprintf("UPDATE user SET name = ? WHERE id = ?",
 	)
 	_, err := uow.Db.Exec(query, user.Name, Id)
 	if err != nil {
