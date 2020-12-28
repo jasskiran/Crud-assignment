@@ -34,7 +34,7 @@ func Test_taskRepository_Create(t *testing.T) {
 					StartDate:   time.Time{},
 					EndDate:     time.Time{},
 					ZoomLink:    "zoom1",
-					MeetLink:    nil,
+					MeetLink:    "nil",
 				},
 			},
 			false,
@@ -44,7 +44,7 @@ func Test_taskRepository_Create(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			task := taskRepository{}
-			query := "INSERT INTO user (id, user_id, name, description, start_date, end_date, zoom_link, meet_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+			query := "INSERT INTO task (.+) VALUES (.+)"
 			prep := db.ExpectPrepare(query)
 			prep.ExpectExec().WithArgs(tt.args.out.Id, tt.args.userId, tt.args.out.Name, tt.args.out.Description, tt.args.out.StartDate, tt.args.out.EndDate, tt.args.out.ZoomLink, tt.args.out.MeetLink).
 				WillReturnResult(sqlmock.NewResult(0, 1))

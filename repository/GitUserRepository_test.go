@@ -36,7 +36,7 @@ func Test_gitUserRepository_CreateGitUser(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			u := gitUserRepository{}
-			query := "INSERT INTO github (id, username) VALUES (?, ?)"
+			query := "INSERT INTO github (.+) VALUES (.+)"
 			prep := db.ExpectPrepare(query)
 			prep.ExpectExec().WithArgs(tt.args.out.Id, tt.args.out.UserName).WillReturnResult(sqlmock.NewResult(0, 1))
 			err := u.CreateGitUser(tt.args.uow, tt.args.out)

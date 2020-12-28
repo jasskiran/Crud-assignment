@@ -11,7 +11,7 @@ type Github struct {
 	UserName string `json:"username"`
 }
 
-func NewGitUser(logger *logrus.Logger, name string) (*Github, error){
+func NewGitUser(logger *logrus.Logger, name string) (*Github, error) {
 	if len(name) == 0 {
 		err := errors.New("name are required")
 		logger.Error(err)
@@ -19,7 +19,7 @@ func NewGitUser(logger *logrus.Logger, name string) (*Github, error){
 	}
 
 	user := &Github{
-		UserName:        name,
+		UserName: name,
 	}
 
 	return user, nil

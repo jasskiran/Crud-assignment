@@ -49,7 +49,7 @@ func (t *taskRepository) Create(uow *UnitOfWork, userId int, out *models.Task) e
 	if err != nil {
 		return err
 	}
-	_, err = stmt.Exec(out.Id, userId, out.Name, out.Description, out.StartDate, out.EndDate, out.ZoomLink, out.MeetLink)
+	_, err = stmt.Exec(&out.Id, &userId, &out.Name, &out.Description, &out.StartDate, &out.EndDate, &out.ZoomLink, &out.MeetLink)
 	if err != nil {
 		return err
 	}

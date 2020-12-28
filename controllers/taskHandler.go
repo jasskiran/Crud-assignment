@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -15,12 +16,12 @@ const (
 )
 
 type TaskController struct {
-	uow  *repository.UnitOfWork
+	uow      *repository.UnitOfWork
 	taskRepo repository.TaskRepository
-	Logger *logrus.Logger
+	Logger   *logrus.Logger
 }
 
-func NewTaskController(uow  *repository.UnitOfWork, taskRepo repository.TaskRepository, Logger *logrus.Logger) *TaskController{
+func NewTaskController(uow *repository.UnitOfWork, taskRepo repository.TaskRepository, Logger *logrus.Logger) *TaskController {
 	return &TaskController{
 		uow:      uow,
 		taskRepo: taskRepo,
@@ -37,6 +38,7 @@ type taskDTO struct {
 	ZoomLink    *string   `json:"zoom_link"`
 	MeetLink    *string   `json:"meet_link"`
 }
+
 // CreateTask creates a new task
 func (controller *TaskController) CreateTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "application/json")
@@ -52,6 +54,7 @@ func (controller *TaskController) CreateTask(w http.ResponseWriter, r *http.Requ
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
+	fmt.Printf("%+v", requestDto)
 
 	task, err := models.NewTask(controller.Logger, requestDto.Name, requestDto.Description)
 	if err != nil {
@@ -59,13 +62,14 @@ func (controller *TaskController) CreateTask(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	fmt.Printf("%+v", task)
 
 	task.StartDate = time.Now()
 	task.EndDate = time.Now()
 
 	err = controller.taskRepo.Create(controller.uow, userId, task)
 	if err != nil {
-		controller.Logger.Error("query error")
+		controller.Logger.Error(err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}

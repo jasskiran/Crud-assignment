@@ -11,7 +11,7 @@ type UserRepository interface {
 	Add(uow *UnitOfWork, out *models.User) error
 	Login(uow *UnitOfWork, name string) (*models.User, error)
 	Update(uow *UnitOfWork, out *models.User, Id int) error
-	Get(uow *UnitOfWork, name int) (user *models.User, err error)
+	//Get(uow *UnitOfWork, name int) (user *models.User, err error)
 	GetLoggedInUser(uow *UnitOfWork, userId int) (*models.User, error)
 }
 
@@ -52,34 +52,44 @@ func (u userRepository) Add(uow *UnitOfWork, out *models.User) error {
 
 func (u userRepository) Update(uow *UnitOfWork, user *models.User, Id int) error {
 
-	query := fmt.Sprintf("UPDATE user SET name = ? WHERE id = ?",
+	query := fmt.Sprintf(`UPDATE 
+										user 
+									SET 
+										name = ? 
+									WHERE 
+										id = ?`,
 	)
-	_, err := uow.Db.Exec(query, user.Name, Id)
+
+	stmt, err := uow.Db.Prepare(query)
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec(user.Name, Id)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (u userRepository) Get(uow *UnitOfWork, userId int) (user *models.User, err error) {
-
-	query := fmt.Sprintf(`
-									SELECT
-										id,
-										name,
-										password,
-										git_username
-									from
-										user
-									where
-										id =?`,
-	)
-	err = uow.Db.QueryRow(query, userId).Scan(&user.Id, &user.Name, &user.Password, &user.GitUsername)
-	if err != nil {
-		return nil, err
-	}
-	return user, nil
-}
+//func (u userRepository) Get(uow *UnitOfWork, userId int) (user *models.User, err error) {
+//
+//	query := fmt.Sprintf(`
+//									SELECT
+//										id,
+//										name,
+//										password,
+//										git_username
+//									from
+//										user
+//									where
+//										id =?`,
+//	)
+//	err = uow.Db.QueryRow(query, userId).Scan(&user.Id, &user.Name, &user.Password, &user.GitUsername)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return user, nil
+//}
 
 func (u userRepository) GetLoggedInUser(uow *UnitOfWork, userId int) (*models.User, error) {
 
@@ -104,7 +114,7 @@ func (u userRepository) GetLoggedInUser(uow *UnitOfWork, userId int) (*models.Us
 	return &user, nil
 }
 
-func (u *userRepository) Login(uow *UnitOfWork, name string) (*models.User,  error) {
+func (u *userRepository) Login(uow *UnitOfWork, name string) (*models.User, error) {
 
 	user := models.User{}
 	var err error

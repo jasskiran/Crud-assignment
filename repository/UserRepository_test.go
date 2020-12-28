@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"testing"
 
 	"Assignment/models"
@@ -8,71 +9,71 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//func Test_userRepository_Add(t *testing.T) {
-//	mock, db := NewMock()
-//	type args struct {
-//		uow *UnitOfWork
-//		out *models.User
-//	}
-//	defer mock.Close()
-//
-//	tests := []struct {
-//		name    string
-//		args    args
-//		wantErr bool
-//	}{
-//		{
-//			"createUserWithNameAndPassword",
-//			args{
-//				uow: &UnitOfWork{Db: mock},
-//				out: &models.User{
-//					Id:          1,
-//					Name:        "user1",
-//					Password:    "password",
-//					GitUsername: "nil",
-//				},
-//			},
-//			false,
-//		},
-//		{
-//			"createUserWithNameAndPasswordAndGitUserName",
-//			args{
-//				uow: &UnitOfWork{Db: mock},
-//				out: &models.User{
-//					Id:          2,
-//					Name:        "user2",
-//					Password:    "password",
-//					GitUsername: "user2",
-//				},
-//			},
-//			false,
-//		},
-//		{
-//			"createUserWithNameAndPasswordAndGitUserNameWithSameUserName",
-//			args{
-//				uow: &UnitOfWork{Db: mock},
-//				out: &models.User{
-//					Id:          1,
-//					Name:        "user1",
-//					Password:    "password",
-//					GitUsername: "user1",
-//				},
-//			},
-//			false,
-//		},
-//	}
-//	for _, tt := range tests {
-//			t.Run(tt.name, func(t *testing.T) {
-//
-//			u := userRepository{}
-//			query := "INSERT INTO user (.+) VALUES (.+)"
-//			prep := db.ExpectPrepare(query)
-//			prep.ExpectExec().WithArgs(tt.args.out.Id, tt.args.out.Name, tt.args.out.Password, tt.args.out.GitUsername).WillReturnResult(sqlmock.NewResult(0, 1))
-//			err := u.Add(tt.args.uow, tt.args.out)
-//			assert.NoError(t, err)
-//		})
-//	}
-//}
+func Test_userRepository_Add(t *testing.T) {
+	mock, db := NewMock()
+	type args struct {
+		uow *UnitOfWork
+		out *models.User
+	}
+	defer mock.Close()
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"createUserWithNameAndPassword",
+			args{
+				uow: &UnitOfWork{Db: mock},
+				out: &models.User{
+					Id:          1,
+					Name:        "user1",
+					Password:    "password",
+					GitUsername: "nil",
+				},
+			},
+			false,
+		},
+		{
+			"createUserWithNameAndPasswordAndGitUserName",
+			args{
+				uow: &UnitOfWork{Db: mock},
+				out: &models.User{
+					Id:          2,
+					Name:        "user2",
+					Password:    "password",
+					GitUsername: "user2",
+				},
+			},
+			false,
+		},
+		{
+			"createUserWithNameAndPasswordAndGitUserNameWithSameUserName",
+			args{
+				uow: &UnitOfWork{Db: mock},
+				out: &models.User{
+					Id:          1,
+					Name:        "user1",
+					Password:    "password",
+					GitUsername: "user1",
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			u := userRepository{}
+			query := "INSERT INTO user (.+) VALUES (.+)"
+			prep := db.ExpectPrepare(query)
+			prep.ExpectExec().WithArgs(tt.args.out.Id, tt.args.out.Name, tt.args.out.Password, tt.args.out.GitUsername).WillReturnResult(sqlmock.NewResult(0, 1))
+			err := u.Add(tt.args.uow, tt.args.out)
+			assert.NoError(t, err)
+		})
+	}
+}
 
 func Test_userRepository_Update(t *testing.T) {
 	mock, db := NewMock()
@@ -90,31 +91,37 @@ func Test_userRepository_Update(t *testing.T) {
 		{
 			"UpdateName",
 			args{
-				uow:  &UnitOfWork{Db: mock},
+				uow: &UnitOfWork{Db: mock},
 				user: &models.User{
-					Name:  "user1",
+					Name: "user",
 				},
-				Id:   1,
+				Id: 1,
 			},
 			false,
 		},
-		//{
-		//	"UpdateNameAndPassword",
-		//	args{
-		//		uow:  &UnitOfWork{Db: mock},
-		//		user: &models.User{
-		//			Name:  "user1",
-		//		},
-		//		Id:   1,
-		//	},
-		//	true,
-		//},
+		{
+			"UpdateNameAndPassword",
+			args{
+				uow: &UnitOfWork{Db: mock},
+				user: &models.User{
+					Name: "user1",
+				},
+				Id: 1,
+			},
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
 			u := userRepository{}
-			query := "UPDATE user SET name = ? WHERE id = ?"
+			query := fmt.Sprintf(`UPDATE 
+										user 
+									SET 
+										name = \? 
+									WHERE 
+										id = \?`,
+			)
 			prep := db.ExpectPrepare(query)
 			prep.ExpectExec().WithArgs(tt.args.user.Name, tt.args.Id).WillReturnResult(sqlmock.NewResult(0, 1))
 			err := u.Update(tt.args.uow, tt.args.user, tt.args.Id)
@@ -140,7 +147,7 @@ func Test_userRepository_GetLoggedInUser(t *testing.T) {
 		{
 			"GetUserWIthLoggedInDetails",
 			args{
-				uow:  &UnitOfWork{Db: mock},
+				uow:    &UnitOfWork{Db: mock},
 				userId: 1,
 			},
 			&models.User{
@@ -164,7 +171,7 @@ func Test_userRepository_GetLoggedInUser(t *testing.T) {
 			assert.NotNil(t, user)
 			assert.NoError(t, err)
 		})
-		}
+	}
 }
 
 func Test_userRepository_Login(t *testing.T) {
@@ -202,7 +209,7 @@ func Test_userRepository_Login(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			u := userRepository{}
-			query := "SELECT (id, name, password, git_username) from user where id = ?"
+			query := "SELECT id, name, password, git_username from user where name = ?"
 			rows := db.NewRows([]string{"id", "name", "password", "git_username"}).
 				AddRow(tt.wantUser.Id, tt.wantUser.Name, tt.wantUser.Password, tt.wantUser.GitUsername)
 

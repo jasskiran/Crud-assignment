@@ -11,16 +11,14 @@ type GitUserRepository interface {
 	GetGitUser(uow *UnitOfWork, userId int) (gitUser *models.Github, err error)
 }
 
-
 type gitUserRepository struct {
-
 }
 
-func NewGitUserRepository() GitUserRepository{
+func NewGitUserRepository() GitUserRepository {
 	return &gitUserRepository{}
 }
 
-func (u *gitUserRepository) CreateGitUser(uow *UnitOfWork, out *models.Github)  error{
+func (u *gitUserRepository) CreateGitUser(uow *UnitOfWork, out *models.Github) error {
 
 	query := fmt.Sprintf(`
 		INSERT INTO github
@@ -35,7 +33,7 @@ func (u *gitUserRepository) CreateGitUser(uow *UnitOfWork, out *models.Github)  
 		)`,
 	)
 
-	stmt , err := uow.Db.Prepare(query)
+	stmt, err := uow.Db.Prepare(query)
 	if err != nil {
 		return err
 	}
@@ -47,7 +45,10 @@ func (u *gitUserRepository) CreateGitUser(uow *UnitOfWork, out *models.Github)  
 	return nil
 }
 
-func (u *gitUserRepository) GetGitUser(uow *UnitOfWork, userId int) (gitUser *models.Github, err error) {
+func (u *gitUserRepository) GetGitUser(uow *UnitOfWork, userId int) (*models.Github, error) {
+
+	var gitUser models.Github
+	var err error
 
 	query := fmt.Sprintf(`
 									SELECT
@@ -60,7 +61,7 @@ func (u *gitUserRepository) GetGitUser(uow *UnitOfWork, userId int) (gitUser *mo
 	)
 	err = uow.Db.QueryRow(query, userId).Scan(&gitUser.Id, &gitUser.UserName)
 	if err != nil {
-		return
+		return nil, err
 	}
-	return
+	return &gitUser, err
 }
