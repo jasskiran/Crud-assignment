@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"log"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
@@ -42,11 +43,11 @@ func hashPassword(pwd []byte) string {
 	return string(hash)
 }
 
-func Authenticate(logger *logrus.Logger, name string, password string) error{
+func Authenticate(logger *logrus.Logger, name string, password string) error {
 	if len(name) == 0 || len(password) == 0 {
 		err := errors.New("name and password are required")
 		logger.Error(err)
-		return  err
+		return err
 	}
 	return nil
 }
@@ -60,10 +61,26 @@ func CompareHashAndPassword(hashedPassword string, plainPassword string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(plainPassword))
 }
 
+func CheckTokenValidation(auth string, token string) (bool, error) {
+
+	splitted := strings.Split(auth, " ") //The token normally comes in format `Bearer {token-body}`, we check if the retrieved token matched this requirement
+	if len(splitted) != 2 {
+		err := errors.New("name and password are required")
+		return false, err
+	}
+	tokenPart := splitted[1] //Grab the token part, what we are truly interested in
+
+	if tokenPart == token {
+		return true, nil
+	}
+	return false, nil
+}
+
 type Auth struct {
-	ID       int    `json:"id"`
-	UserID   int    `json:"user_id"`
-	AuthUUID string `json:"auth_uuid"`
+	Id     int    `json:"id"`
+	UserId int    `json:"user_id"`
+	Token  string `json:"token"`
+	Active bool   `json:"active"`
 }
 
 //

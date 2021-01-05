@@ -11,23 +11,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func main(){
+func main() {
 	lvl, _ := logrus.ParseLevel("trace")
 	logger := newLogger(lvl)
 
-	db, err := sql.Open("mysql", "root:password@tcp(localhost:3307)/test")
-	if err != nil{
+	//db, err := sql.Open("mysql", "root:password@tcp(localhost:3307)/test")
+	db, err := sql.Open(controllers.ViperConfigVariable("database.dbname"), controllers.ViperConfigVariable("database.dbuser")+":"+controllers.ViperConfigVariable("database.dbpassword")+"@tcp(localhost:3307)/test")
+	if err != nil {
 		logger.Fatal(err)
 	}
 	defer db.Close()
 	router := initialiseRoutes(db, logger)
 
 	logger.Infof("starting server")
-	logger.Fatal(http.ListenAndServe(":8000", router))
+	logger.Fatal(http.ListenAndServe(controllers.ViperConfigVariable("server.port"), router))
 
 }
 
-func initialiseRoutes(db *sql.DB, logger *logrus.Logger ) *mux.Router{
+func initialiseRoutes(db *sql.DB, logger *logrus.Logger) *mux.Router {
 
 	router := mux.NewRouter().StrictSlash(true)
 
@@ -40,23 +41,22 @@ func initialiseRoutes(db *sql.DB, logger *logrus.Logger ) *mux.Router{
 	router.HandleFunc("/signin", userController.SignIn).Methods("POST")
 	router.HandleFunc("/profile", controllers.AuthRequired(userController.GetCurrentUserDetails)).Methods("GET")
 	router.HandleFunc("/profile", controllers.AuthRequired(userController.UpdateProfile)).Methods("PUT")
-	//router.HandleFunc("/signout", controllers.AuthRequired(svc.SignOut)).Methods("POST")
+	router.HandleFunc("/signout", controllers.AuthRequired(userController.SignOut)).Methods("POST")
 
 	gitUserRepository := repository.NewGitUserRepository()
-	gitUserController := controllers.NewGitUserController(uow, gitUserRepository, logger)
+	gitUserController := controllers.NewGitUserController(uow, gitUserRepository, userRepository, logger)
 
 	router.HandleFunc("/github", gitUserController.CreateGithubUser).Methods("POST")
 	router.HandleFunc("/github", controllers.AuthRequired(gitUserController.GetUserGithubDetails)).Methods("GET")
 
 	taskRepository := repository.NewTaskRepository()
-	taskController := controllers.NewTaskController(uow, taskRepository, logger)
+	taskController := controllers.NewTaskController(uow, taskRepository, userRepository, logger)
 
 	router.HandleFunc("/task", controllers.AuthRequired(taskController.CreateTask)).Methods("POST")
 	router.HandleFunc("/task", controllers.AuthRequired(taskController.GetTasks)).Methods("GET")
 
 	return router
 }
-
 
 func newLogger(level logrus.Level) *logrus.Logger {
 	logger := logrus.New()

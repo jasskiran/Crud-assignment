@@ -2,7 +2,6 @@ package repository
 
 import (
 	"testing"
-	"time"
 
 	"Assignment/models"
 	"github.com/DATA-DOG/go-sqlmock"
@@ -31,8 +30,8 @@ func Test_taskRepository_Create(t *testing.T) {
 					Id:          1,
 					Name:        "task1",
 					Description: "description",
-					StartDate:   time.Time{},
-					EndDate:     time.Time{},
+					StartDate:   "",
+					EndDate:     "",
 					ZoomLink:    "zoom1",
 					MeetLink:    "nil",
 				},
@@ -74,19 +73,16 @@ func Test_taskRepository_GetTasks(t *testing.T) {
 			"",
 			args{
 				uow:       &UnitOfWork{Db: mock},
-				startDate: "",
-				endDate:   "",
-				userId:    0,
+				startDate: "2020-12-29",
+				endDate:   "2021-12-29",
+				userId:    1,
 			},
 			&models.Task{
-				Id:          0,
-				UserId:      0,
-				Name:        "",
-				Description: "",
-				StartDate:   time.Time{},
-				EndDate:     time.Time{},
-				ZoomLink:    "",
-				MeetLink:    "",
+				Id:          1,
+				Name:        "Task1",
+				Description: "This is first task",
+				ZoomLink:    "abcd",
+				MeetLink:    "abcd",
 			},
 			false,
 		},
@@ -95,11 +91,11 @@ func Test_taskRepository_GetTasks(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			task := taskRepository{}
-			query := "SELECT id, name, description, zoom_link, meet_link from task where start_date >= ? and end_date <= ? and user_id = ?"
+			query := `SELECT id, name, description, zoom_link, meet_link from task where start_date >= \? and end_date <= \? and user_id = \?`
 
 			rows := db.NewRows([]string{"id", "name", "description", "zoom_link", "meet_link"}).
 				AddRow(tt.wantTask.Id, tt.wantTask.Name, tt.wantTask.StartDate, tt.wantTask.ZoomLink, tt.wantTask.MeetLink)
-			db.ExpectQuery(query).WithArgs(tt.args.userId).WillReturnRows(rows)
+			db.ExpectQuery(query).WithArgs(tt.args.startDate, tt.args.endDate, tt.args.userId).WillReturnRows(rows)
 			tsk, err := task.GetTasks(tt.args.uow, tt.args.startDate, tt.args.endDate, tt.args.userId)
 			assert.NotNil(t, tsk)
 			assert.NoError(t, err)

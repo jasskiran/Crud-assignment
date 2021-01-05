@@ -11,11 +11,12 @@ import (
 
 func Test_userRepository_Add(t *testing.T) {
 	mock, db := NewMock()
+	defer mock.Close()
+
 	type args struct {
 		uow *UnitOfWork
 		out *models.User
 	}
-	defer mock.Close()
 
 	tests := []struct {
 		name    string
@@ -176,13 +177,12 @@ func Test_userRepository_GetLoggedInUser(t *testing.T) {
 
 func Test_userRepository_Login(t *testing.T) {
 	mock, db := NewMock()
+	defer mock.Close()
 
 	type args struct {
 		uow  *UnitOfWork
 		name string
 	}
-
-	defer mock.Close()
 
 	tests := []struct {
 		name     string
@@ -217,6 +217,127 @@ func Test_userRepository_Login(t *testing.T) {
 
 			user, err := u.Login(tt.args.uow, tt.args.name)
 			assert.NotNil(t, user)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func Test_userRepository_DeleteToken(t *testing.T) {
+	mock, db := NewMock()
+	defer mock.Close()
+
+	type args struct {
+		uow    *UnitOfWork
+		userId int
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"SetTokenToFalse",
+			args{
+				uow:    &UnitOfWork{Db: mock},
+				userId: 1,
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u := userRepository{}
+			query := `Update authentication
+							set
+								active = \?
+							where
+								user_id = \?`
+			prep := db.ExpectPrepare(query)
+			prep.ExpectExec().WithArgs(false, tt.args.userId).WillReturnResult(sqlmock.NewResult(0, 1))
+			err := u.DeleteToken(tt.args.uow, tt.args.userId)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func Test_userRepository_GetToken(t *testing.T) {
+	mock, db := NewMock()
+	defer mock.Close()
+
+	type args struct {
+		uow    *UnitOfWork
+		userId int
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *models.Auth
+		wantErr bool
+	}{
+		{
+			"GetToken",
+			args{
+				uow:    &UnitOfWork{Db: mock},
+				userId: 1,
+			},
+			&models.Auth{
+				Id:     1,
+				UserId: 1,
+				Token:  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDk4MjY0NDQsInVzZXJfaWQiOjd9.1zCj3ArZ_-159I6WLis4XCi5sC6qAO9NMymJLQTDKwE",
+				Active: true,
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u := userRepository{}
+			query := "SELECT id, user_id, token, active from authentication where active = 1 and user_id = ?"
+			rows := db.NewRows([]string{"id", "user_id", "token", "active"}).
+				AddRow(tt.want.Id, tt.want.UserId, tt.want.Token, tt.want.Active)
+			db.ExpectQuery(query).WithArgs(tt.args.userId).WillReturnRows(rows)
+			token, err := u.GetToken(tt.args.uow, tt.args.userId)
+			assert.NotNil(t, token)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func Test_userRepository_AddToken(t *testing.T) {
+	mock, db := NewMock()
+	defer mock.Close()
+
+	type args struct {
+		uow *UnitOfWork
+		out *models.Auth
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"",
+			args{
+				uow: &UnitOfWork{Db: mock},
+				out: &models.Auth{
+					Id:     1,
+					UserId: 1,
+					Token:  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDk4MjY0NDQsInVzZXJfaWQiOjd9.1zCj3ArZ_-159I6WLis4XCi5sC6qAO9NMymJLQTDKwE",
+					Active: true,
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			u := userRepository{}
+			query := "INSERT INTO authentication (.+) VALUES (.+)"
+			prep := db.ExpectPrepare(query)
+			prep.ExpectExec().WithArgs(tt.args.out.Id, tt.args.out.UserId, tt.args.out.Token, tt.args.out.Active).WillReturnResult(sqlmock.NewResult(0, 1))
+			err := u.AddToken(tt.args.uow, tt.args.out)
 			assert.NoError(t, err)
 		})
 	}

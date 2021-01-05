@@ -1,0 +1,87 @@
+version: '2'
+services:
+  app:
+    container_name: Assignment
+    build: .
+    ports:
+      - 8081:8081
+    restart: on-failure
+    depends_on:
+      - fullstack-mysql
+    networks:
+      - fullstack
+
+
+  fullstack-mysql:
+    image: mysql:5.7
+    container_name: full_db_mysql
+    env_file: ./config.yaml
+    ports:
+      - 3308:3306
+    volumes:
+      - database_mysql:/var/lib/mysql
+    networks:
+      - fullstack
+
+volumes:
+  api:
+  database_mysql:
+
+# Networks to be created to facilitate communication between containers
+networks:
+  fullstack:
+    driver: bridge
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#services:
+#  Assignment:
+#    container_name: full_app
+#    build: .
+#    ports:
+#      - 8080:8080
+#    restart: on-failure
+#    #    volumes:
+#    #      - api:/usr/src/app/
+#    depends_on:
+#      - mysql
+#  #    networks:
+#  #      - fullstack
+#
+#
+#
+#  mysql:
+#    image: mysql:latest
+#    container_name: db_mysql
+#    ports:
+#      - 3307:3306
+#    environment:
+#      - MYSQL_USER=${dbuser}
+#      - MYSQL_PASSWORD=${dbpassword}
+#      - MYSQL_DATABASE=${dbname}
+#    volumes:
+#      - database_mysql:/var/lib/mysql
+#    networks:
+#      - fullstack
+
+
+#networks:
+#  fullstack:
+#    driver: bridge

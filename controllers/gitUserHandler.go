@@ -11,21 +11,22 @@ import (
 )
 
 type GitUserController struct {
-	uow  *repository.UnitOfWork
+	uow         *repository.UnitOfWork
 	gitUserRepo repository.GitUserRepository
-	Logger *logrus.Logger
+	userRepo    repository.UserRepository
+	Logger      *logrus.Logger
 }
 
-
-func NewGitUserController(uow  *repository.UnitOfWork, gitUserRepo repository.GitUserRepository, Logger *logrus.Logger) *GitUserController{
+func NewGitUserController(uow *repository.UnitOfWork, gitUserRepo repository.GitUserRepository, userRepo repository.UserRepository, Logger *logrus.Logger) *GitUserController {
 	return &GitUserController{
-		uow:      uow,
+		uow:         uow,
 		gitUserRepo: gitUserRepo,
-		Logger:   Logger,
+		userRepo:    userRepo,
+		Logger:      Logger,
 	}
 }
 
-type gitUserDTO struct{
+type gitUserDTO struct {
 	Username string `json:"username"`
 }
 
@@ -61,27 +62,47 @@ func (controller *GitUserController) CreateGithubUser(w http.ResponseWriter, r *
 	}
 }
 
-
 // get github details of the current logged in user
-func (controller *GitUserController)GetUserGithubDetails(w http.ResponseWriter, r *http.Request) {
+func (controller *GitUserController) GetUserGithubDetails(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "application/json")
+
+	auth := r.Header.Get("Authorization")
 
 	//get authenticated from the request context
 	token := r.Context().Value("userId").(Token)
 	userId := token.UserId
 
-	fmt.Println("userId", userId)
-	gituser, err := controller.gitUserRepo.GetGitUser(controller.uow, userId)
+	tk, err := controller.userRepo.GetToken(controller.uow, userId)
 	if err != nil {
 		controller.Logger.Error(err.Error())
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	err = json.NewEncoder(w).Encode(gituser)
+	exists, err := models.CheckTokenValidation(auth, tk.Token)
 	if err != nil {
 		controller.Logger.Error(err.Error())
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
 		return
 	}
+
+	if exists {
+
+		fmt.Println("userId", userId)
+		gituser, err := controller.gitUserRepo.GetGitUser(controller.uow, userId)
+		if err != nil {
+			controller.Logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		err = json.NewEncoder(w).Encode(gituser)
+		if err != nil {
+			controller.Logger.Error(err.Error())
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	}
+	w.WriteHeader(http.StatusBadRequest)
 }

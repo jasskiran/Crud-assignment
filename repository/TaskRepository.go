@@ -15,7 +15,7 @@ func NewTaskRepository() TaskRepository {
 
 type TaskRepository interface {
 	Create(uow *UnitOfWork, userId int, out *models.Task) error
-	GetTasks(uow *UnitOfWork, startDate string, endDate string, userId int) (task *models.Task, err error)
+	GetTasks(uow *UnitOfWork, startDate string, endDate string, userId int) (*[]models.Task, error)
 }
 
 func (t *taskRepository) Create(uow *UnitOfWork, userId int, out *models.Task) error {
@@ -56,7 +56,12 @@ func (t *taskRepository) Create(uow *UnitOfWork, userId int, out *models.Task) e
 	return nil
 }
 
-func (t taskRepository) GetTasks(uow *UnitOfWork, startDate string, endDate string, userId int) (task *models.Task, err error) {
+func (t taskRepository) GetTasks(uow *UnitOfWork, startDate string, endDate string, userId int) (*[]models.Task, error) {
+
+	var err error
+	var task models.Task
+	var tasks []models.Task
+
 	query := fmt.Sprintf(`
 									SELECT
 										id,
@@ -69,9 +74,28 @@ func (t taskRepository) GetTasks(uow *UnitOfWork, startDate string, endDate stri
 									where
 										start_date >= ? and end_date <= ? and user_id = ?`,
 	)
-	err = uow.Db.QueryRow(query, startDate, endDate, userId).Scan(&task.Id, &task.Name, &task.Description, &task.ZoomLink, task.MeetLink)
+	//err = uow.Db.QueryRow(query, startDate, endDate, userId).Scan(&tasks.Id, &tasks.Name, &tasks.Description, &tasks.ZoomLink, &task.MeetLink)
+	//if err != nil {
+	//	return nil, err
+	//}
+	// Execute the query
+	results, err := uow.Db.Query(query, startDate, endDate, userId)
 	if err != nil {
-		return nil, err
+		return nil, err // proper error handling instead of panic in your app
 	}
-	return
+
+	for results.Next() {
+
+		// for each row, scan the result into our tag composite object
+		err = results.Scan(&task.Id, &task.Name, &task.Description, &task.ZoomLink, &task.MeetLink)
+		if err != nil {
+			return nil, err // proper error handling instead of panic in your app
+		}
+
+		tasks = append(tasks, task)
+		// and then print out the tag's Name attribute
+		//log.Printf(tag.Name)
+	}
+
+	return &tasks, nil
 }

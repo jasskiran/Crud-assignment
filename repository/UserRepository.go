@@ -11,8 +11,10 @@ type UserRepository interface {
 	Add(uow *UnitOfWork, out *models.User) error
 	Login(uow *UnitOfWork, name string) (*models.User, error)
 	Update(uow *UnitOfWork, out *models.User, Id int) error
-	//Get(uow *UnitOfWork, name int) (user *models.User, err error)
 	GetLoggedInUser(uow *UnitOfWork, userId int) (*models.User, error)
+	AddToken(uow *UnitOfWork, out *models.Auth) error
+	GetToken(uow *UnitOfWork, userId int) (*models.Auth, error)
+	DeleteToken(uow *UnitOfWork, userId int) error
 }
 
 type userRepository struct{}
@@ -71,26 +73,6 @@ func (u userRepository) Update(uow *UnitOfWork, user *models.User, Id int) error
 	return nil
 }
 
-//func (u userRepository) Get(uow *UnitOfWork, userId int) (user *models.User, err error) {
-//
-//	query := fmt.Sprintf(`
-//									SELECT
-//										id,
-//										name,
-//										password,
-//										git_username
-//									from
-//										user
-//									where
-//										id =?`,
-//	)
-//	err = uow.Db.QueryRow(query, userId).Scan(&user.Id, &user.Name, &user.Password, &user.GitUsername)
-//	if err != nil {
-//		return nil, err
-//	}
-//	return user, nil
-//}
-
 func (u userRepository) GetLoggedInUser(uow *UnitOfWork, userId int) (*models.User, error) {
 
 	var user models.User
@@ -133,18 +115,74 @@ func (u *userRepository) Login(uow *UnitOfWork, name string) (*models.User, erro
 	return &user, err
 }
 
-// deletes the token for the user and particular device
-//func DeleteAuth(dbSvc *repository.DbSvc, userId int, authId string) error {
-//
-//	query, err := dbSvc.Db.Db.Prepare(`Delete * from authentication where user_id = ? and id = ? )`)
-//	if err != nil {
-//		// Todo error handling
-//	}
-//
-//	_, err = query.Exec(userId, authId)
-//	if err != nil {
-//		// Todo error handling
-//	}
-//
-//	return err
-//}
+func (u userRepository) AddToken(uow *UnitOfWork, out *models.Auth) error {
+	query := fmt.Sprintf(`
+		INSERT INTO authentication
+		(
+			id,
+			user_id,
+			token,
+			active
+		)
+		VALUES
+		(
+			?,
+			?,
+			?,
+			?
+		)`,
+	)
+
+	stmt, err := uow.Db.Prepare(query)
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec(out.Id, out.UserId, out.Token, true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (u userRepository) GetToken(uow *UnitOfWork, userId int) (*models.Auth, error) {
+
+	var authentication models.Auth
+	var err error
+	query := fmt.Sprintf(`
+									SELECT
+										id,
+										user_id,
+										token,
+										active
+									from
+										authentication
+									where
+										active = 1
+									and user_id = ?`,
+	)
+	err = uow.Db.QueryRow(query, userId).Scan(&authentication.Id, &authentication.UserId, &authentication.Token, &authentication.Active)
+	if err != nil {
+		return nil, err
+	}
+	return &authentication, nil
+}
+
+func (u userRepository) DeleteToken(uow *UnitOfWork, userId int) error {
+	query := fmt.Sprintf(`
+		Update authentication
+		set
+			active = ?
+		where 
+			user_id = ?`,
+	)
+
+	stmt, err := uow.Db.Prepare(query)
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec(false, userId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
